@@ -216,3 +216,201 @@ helm test myapp
 ---
 
 Would you like to dive deeper into **advanced chart testing** or explore a **real-world example** of testing a complex chart with multiple dependencies? Let me know!
+
+Perfect 💪 Mounisha! Let’s start **✨ Day 12 — Helm Testing & Debugging (Advanced Helm for Professionals)**
+
+This is an **important DevOps-level** topic — it helps you **verify**, **debug**, and **validate** your Helm deployments confidently before pushing to production.
+
+---
+
+## 🧩 **Day 12 — Helm Testing & Debugging**
+
+### 🎯 Learning Goals
+
+By the end of today’s class, you’ll understand:
+
+1. What Helm tests are
+2. How to create Helm test pods
+3. How to debug templates before installing
+4. How to view rendered manifests and detect YAML issues
+5. How to simulate an install without applying it
+
+---
+
+## 🧠 **1. What is Helm Test?**
+
+Helm allows you to define **tests** that run after a chart is installed.
+These tests help confirm that your app is working as expected (for example, checking if the web service is reachable).
+
+🧩 Example:
+You can create a Pod that runs a command like:
+
+```bash
+curl myapp:8080/health
+```
+
+If it succeeds (exit code 0), Helm marks the test as **PASSED** ✅.
+If it fails (exit code ≠ 0), Helm marks it as **FAILED** ❌.
+
+---
+
+## 🧾 **2. Defining a Helm Test**
+
+You define a test Pod inside your chart — usually in:
+
+```
+templates/tests/test-connection.yaml
+```
+
+Example:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "mychart.fullname" . }}-test-connection"
+  labels:
+    app.kubernetes.io/name: {{ include "mychart.name" . }}
+    helm.sh/chart: {{ include "mychart.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: curl
+      image: curlimages/curl
+      command: ['curl']
+      args: ['{{ include "mychart.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never
+```
+
+👉 Here:
+
+* The annotation `"helm.sh/hook": test` tells Helm that this is a **test hook**.
+* The Pod runs a simple **curl** command to test connectivity.
+
+---
+
+## 🧪 **3. Running Helm Tests**
+
+After you install your release:
+
+```bash
+helm install myapp ./mychart
+```
+
+You can run your tests using:
+
+```bash
+helm test myapp
+```
+
+📊 Output:
+
+```
+RUNNING: myapp-test-connection
+PASSED: myapp-test-connection
+```
+
+If your pod fails or times out:
+
+```
+FAILED: myapp-test-connection
+Error: 1 test(s) failed
+```
+
+---
+
+## 🔍 **4. Debugging Helm Templates**
+
+Sometimes, you want to see what Helm will deploy **before actually deploying** it.
+
+### ✅ Show rendered templates
+
+```bash
+helm template myapp ./mychart
+```
+
+This command **renders** all templates and prints them as YAML to your terminal — without sending anything to Kubernetes.
+
+---
+
+### ✅ Simulate installation
+
+```bash
+helm install myapp ./mychart --dry-run --debug
+```
+
+It:
+
+* Doesn’t install the chart
+* Prints rendered templates
+* Shows debug output and variable values
+
+Very useful to check **syntax errors**, **missing values**, or **YAML indentation issues**.
+
+---
+
+### ✅ Verify values being passed
+
+```bash
+helm get values myapp
+```
+
+This shows which values were used in a deployed release.
+
+---
+
+## 🧰 **5. Common Debugging Commands**
+
+| Command                          | Description                              |
+| -------------------------------- | ---------------------------------------- |
+| `helm lint ./mychart`            | Checks chart for YAML or template errors |
+| `helm template ./mychart`        | Renders templates locally                |
+| `helm install --dry-run --debug` | Simulates install with debug info        |
+| `helm get manifest myapp`        | Shows manifests of installed release     |
+| `helm test myapp`                | Runs defined test pods                   |
+
+---
+
+## 🧠 **6. Real Example**
+
+Let’s say your app deploys successfully, but you’re not sure it’s reachable.
+
+You can create a test Pod that:
+
+* Waits for your service
+* Executes `curl myapp:8080`
+* Returns 0 if successful
+
+Then simply run:
+
+```bash
+helm test myapp
+```
+
+If the pod succeeds → ✅ Test passed
+If the pod fails → ❌ You debug with:
+
+```bash
+kubectl logs myapp-test-connection
+```
+
+---
+
+## 🎓 **Summary**
+
+| Feature                | Command / Concept   | Purpose                              |
+| ---------------------- | ------------------- | ------------------------------------ |
+| **Helm Test**          | `helm test release` | Runs test hooks (like health checks) |
+| **Dry Run**            | `--dry-run`         | Simulate install without applying    |
+| **Debug Mode**         | `--debug`           | Shows detailed logs and rendering    |
+| **Template Rendering** | `helm template`     | Print rendered YAML                  |
+| **Linting**            | `helm lint`         | Validate chart syntax                |
+| **Manifest Retrieval** | `helm get manifest` | View applied manifests               |
+
+---
+
+
+

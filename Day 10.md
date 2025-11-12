@@ -245,3 +245,232 @@ redis:
 ---
 
 Would you like to continue with **Day 11 — Helm Chart Repositories** (covering how to manage and push your custom charts to repositories)? This is essential for **sharing your charts** with others or using charts in production.
+
+Perfect 👏 Mounisha! You’re progressing beautifully — welcome to **🎯 Day 11: Helm Dependencies (Subcharts & Requirements)**.
+
+This is a very *important* and *real-world* topic because in real projects, your application almost never runs alone — it usually **depends on other components** (like databases, message brokers, caching systems, etc.).
+
+---
+
+## 🌈 **Day 11 — Helm Dependencies (Subcharts)**
+
+---
+
+### 🧠 **1️⃣ What Are Helm Dependencies?**
+
+A **Helm dependency** is another Helm chart that your chart relies on.
+For example:
+
+* Your app chart may depend on a **PostgreSQL** chart for its database.
+* Or an app might depend on a **Redis** chart for caching.
+
+Helm allows you to manage all these dependencies **inside your main chart** — so they get installed and upgraded together automatically.
+
+This makes deployment **modular and reusable** ✅
+
+---
+
+### 🧩 **2️⃣ Types of Charts in Helm**
+
+| Chart Type        | Description                                                     |
+| ----------------- | --------------------------------------------------------------- |
+| **Parent Chart**  | The main chart (your app)                                       |
+| **Subchart**      | A dependent chart used by the parent                            |
+| **Library Chart** | A reusable chart without resources (used for helpers/templates) |
+
+---
+
+### ⚙️ **3️⃣ How Dependencies Work**
+
+Your chart has a file called `Chart.yaml`.
+Inside that, you can define dependencies like this 👇
+
+```yaml
+apiVersion: v2
+name: myapp
+version: 1.0.0
+dependencies:
+  - name: postgresql
+    version: 12.5.6
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+```
+
+This means:
+
+* “My app needs PostgreSQL version 12.5.6 from Bitnami repo.”
+* If `postgresql.enabled` is true in `values.yaml`, install it.
+
+---
+
+### 📁 **4️⃣ Helm Folder Structure with Dependency**
+
+When you add a dependency, your chart will look like this:
+
+```
+myapp/
+├── charts/
+│   └── postgresql/      # (Dependency chart files go here)
+├── templates/
+│   ├── deployment.yaml
+│   └── service.yaml
+├── Chart.yaml
+├── values.yaml
+```
+
+---
+
+### 🧾 **5️⃣ Adding Dependencies**
+
+To actually *download* and *update* dependencies, you use:
+
+```bash
+helm dependency update
+```
+
+👉 This command looks at the `dependencies:` section of your `Chart.yaml`, downloads those charts, and puts them inside your `charts/` folder.
+
+You’ll see:
+
+```
+Saving 1 charts
+Deleting outdated charts
+Downloading postgresql from repo https://charts.bitnami.com/bitnami
+```
+
+---
+
+### 💡 **6️⃣ Enabling or Disabling Dependencies**
+
+In `values.yaml`, you can control whether to install a dependency or not:
+
+```yaml
+postgresql:
+  enabled: true
+  auth:
+    username: myuser
+    password: mypass
+    database: mydb
+```
+
+If you set `enabled: false`, Helm will **skip installing** that dependency.
+
+---
+
+### 🧩 **7️⃣ Accessing Dependency Values**
+
+You can access values from a subchart inside your main chart using:
+
+```
+{{ .Values.postgresql.auth.username }}
+```
+
+This works if your subchart defines those values.
+
+---
+
+### 🧪 **8️⃣ Example — App with PostgreSQL Dependency**
+
+#### Step 1: Create your app chart
+
+```bash
+helm create myapp
+```
+
+#### Step 2: Edit Chart.yaml
+
+Add:
+
+```yaml
+dependencies:
+  - name: postgresql
+    version: 12.5.6
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+```
+
+#### Step 3: Update dependencies
+
+```bash
+helm dependency update
+```
+
+#### Step 4: Verify charts folder
+
+You’ll see a new folder:
+
+```
+charts/postgresql/
+```
+
+#### Step 5: Install your app
+
+```bash
+helm install myapp .
+```
+
+Helm will now automatically:
+
+* Install PostgreSQL from Bitnami repo
+* Then install your app
+
+✅ Both installed together!
+
+---
+
+### 🧠 **9️⃣ Subchart vs Parent Chart — Key Rules**
+
+| Rule                                            | Description                             |
+| ----------------------------------------------- | --------------------------------------- |
+| Subchart is independent                         | It can be deployed by itself            |
+| Parent can override subchart values             | Through `values.yaml`                   |
+| Subchart’s templates don’t access parent values | (But parent can access subchart values) |
+| Dependencies managed by Helm automatically      | Using `helm dependency update`          |
+
+---
+
+### 🧩 **🔟 Real-world Example**
+
+You’re deploying a microservice that needs:
+
+* PostgreSQL for database
+* Redis for caching
+
+You can simply define both dependencies in `Chart.yaml` like this:
+
+```yaml
+dependencies:
+  - name: postgresql
+    version: 12.5.6
+    repository: "https://charts.bitnami.com/bitnami"
+  - name: redis
+    version: 17.3.14
+    repository: "https://charts.bitnami.com/bitnami"
+```
+
+Then just run:
+
+```bash
+helm dependency update
+helm install myservice .
+```
+
+Boom 💥 — your app + PostgreSQL + Redis all deploy together.
+
+---
+
+### 🧾 **Summary**
+
+| Concept                | Description                                   |
+| ---------------------- | --------------------------------------------- |
+| Dependency             | Another chart your chart depends on           |
+| Defined in             | `Chart.yaml → dependencies:`                  |
+| Downloaded via         | `helm dependency update`                      |
+| Stored in              | `charts/` folder                              |
+| Enabled by             | `condition` field (like `postgresql.enabled`) |
+| Access subchart values | `.Values.<subchart-name>.<key>`               |
+
+---
+
+Would you like me to show a **hands-on mini example** — where we actually use a Bitnami PostgreSQL dependency in your app chart and see it install together?
+
